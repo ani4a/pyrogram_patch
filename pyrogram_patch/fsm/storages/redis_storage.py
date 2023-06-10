@@ -7,8 +7,8 @@ from pyrogram_patch.fsm.states import State
 
 
 class RedisStorage(BaseStorage):
-    def __init__(self, __storage: Redis) -> None:
-        self.__storage = __storage
+    def __init__(self, storage: Redis) -> None:
+        self.storage = storage
 
     @classmethod
     def from_url(
@@ -18,27 +18,27 @@ class RedisStorage(BaseStorage):
             connection_kwargs = {}
         pool = ConnectionPool.from_url(url, **connection_kwargs)
         redis = Redis(connection_pool=pool)
-        return cls(__storage=redis)
+        return cls(storage=redis)
 
     async def checkup(self, key) -> "State":
-        if await self.__storage.exists(key):
-            return State(await self.__storage.get(key), self, key)
+        if await self.storage.exists(key):
+            return State(await self.storage.get(key), self, key)
         return State("*", self, key)
 
     async def set_state(self, state: str, key: str) -> None:
         if state is None:
-            await self.__storage.delete(key)
+            await self.storage.delete(key)
         else:
-            await self.__storage.set(
+            await self.storage.set(
                 key,
                 state
             )
 
     async def set_data(self, data: dict, key: str) -> None:
         if not data:
-            await self.__storage.delete(key)
+            await self.storage.delete(key)
             return
-        await self.__storage.set(
+        await self.storage.set(
             key,
             dumps(data)
         )
@@ -48,7 +48,7 @@ class RedisStorage(BaseStorage):
             return {}
         if isinstance(key, bytes):
             key = key.decode("utf-8")
-        return loads(await self.__storage.get(key))
+        return loads(await self.storage.get(key))
 
     async def finish_state(self, key: str) -> None:
-        await self.__storage.delete(key)
+        await self.storage.delete(key)
